@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block main_layout %}
+<div class="split-container">
+    <div class="split-left">
+        <h1>Veridit</h1>
+              
+        <ul style="list-style: none; padding: 0; margin: 0; line-height: 2rem;">
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Certificação de conteúdo online</li>
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Relatórios em conformidade legal</li>
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Cadeia de custódia preservada</li>
+        </ul>
+    </div>
+    
+    <div class="split-right">
+        <div class="auth-card">
+            <h2>Recuperar Senha</h2>
+            <p class="auth-subtitle">Insira o seu e-mail cadastrado para receber as instruções de recuperação.</p>
+            
+            <div id="erro-recuperar" class="alert-error" style="display: none;">
+                <span class="alert-icon">⚠️</span>
+                <span class="alert-message">E-mail não encontrado no sistema.</span>
+            </div>
+
+            <div id="sucesso-recuperar" class="alert-success-box" style="display: none;">
+                <span class="alert-icon">✨</span>
+                <span class="alert-message">Link de recuperação enviado com sucesso para o seu e-mail!</span>
+            </div>
+            
+            <form id="form-recuperar" action="/recuperar" method="post">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="eduardo.almeida@veridit.com.br" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Enviar Link</button>
+            </form>
+        </div>
+        <p style="margin-top: 15px; text-align: center;">Lembrou a senha? <a href="/">Voltar para o Login</a></p>
+    </div>
+</div>
+
+<script>
+document.getElementById('form-recuperar').addEventListener('submit', async function(e) {
+    e.preventDefault(); // Impede tela preta e recarregamento
+    
+    const erroDiv = document.getElementById('erro-recuperar');
+    const sucessoDiv = document.getElementById('sucesso-recuperar');
+    
+    erroDiv.style.display = 'none';
+    sucessoDiv.style.display = 'none';
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/recuperar', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            sucessoDiv.style.display = 'flex';
+            document.getElementById('email').value = ''; // Limpa o campo se der certo
+        } else {
+            erroDiv.style.display = 'flex';
+        }
+    } catch (error) {
+        erroDiv.style.display = 'flex';
+    }
+});
+</script>
+{% endblock %}
