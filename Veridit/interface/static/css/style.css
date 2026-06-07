@@ -1,0 +1,230 @@
+/* ==========================================================================
+   RESET E CONFIGURAÇÕES GERAIS
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   ESTRUTURA DE TELA DIVIDIDA (SPLIT SCREEN)
+   ========================================================================== */
+.split-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* LADO ESQUERDO: Painel Escuro Institucional */
+.split-left {
+    flex: 1;
+    background-color: #0f172a; /* Azul escuro/Slate super elegante */
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px;
+}
+
+.split-left h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    color: #caaf6b; /* Tom dourado oficial do Veridit */
+    margin-bottom: 20px;
+}
+
+.split-left p {
+    font-size: 1.15rem;
+    color: #94a3b8;
+    max-width: 480px;
+    line-height: 1.6;
+}
+
+/* LADO DIREITO: Área Branca do Formulário */
+.split-right {
+    flex: 1;
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+/* ==========================================================================
+   CARD DE AUTENTICAÇÃO E COMPONENTES
+   ========================================================================== */
+.auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+}
+
+.auth-card h2 {
+    font-size: 1.8rem;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+
+.auth-subtitle {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+}
+
+/* Grupos de Input */
+.form-group {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: #caaf6b;
+    box-shadow: 0 0 0 3px rgba(202, 175, 107, 0.15);
+}
+
+/* Botão Principal */
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background-color: #0f172a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+}
+
+.btn-primary:hover {
+    background-color: #1e293b;
+}
+
+/* Grid de Seleção (Usuário Comum / Advogado) */
+.selectable-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.select-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.select-card:hover {
+    border-color: #cbd5e1;
+}
+
+.select-card.active {
+    border-color: #caaf6b;
+    background-color: rgba(202, 175, 107, 0.05);
+}
+
+.select-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #334155;
+    margin-top: 6px;
+}
+
+/* Links e Textos de Alternância */
+.split-right p {
+    margin-top: 20px;
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+.split-right p a {
+    color: #caaf6b;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.split-right p a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   NOTIFICAÇÃO DE ERRO (LOGIN/CADASTRO)
+   ========================================================================== */
+.alert-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #fef2f2; /* Vermelho claro de fundo */
+    border: 1px solid #fca5a5;  /* Borda suave */
+    color: #991b1b;             /* Texto vermelho escuro */
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    animation: tremor 0.4s ease-in-out; /* Efeito de vibração ao aparecer */
+}
+
+.alert-icon {
+    font-size: 1.1rem;
+}
+
+/* Animação para dar destaque ao erro quando ele surge no ecrã */
+@keyframes tremor {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE (MOBILE)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .split-container {
+        flex-direction: column;
+    }
+    .split-left {
+        display: none; /* Esconde o painel escuro no celular para priorizar o form */
+    }
+    .split-right {
+        padding: 24px;
+    }
+}

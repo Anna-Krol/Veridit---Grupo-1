@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block main_layout %}
+<div class="split-container">
+    <div class="split-left">
+        <h1>Veridit</h1>        
+        <ul style="list-style: none; padding: 0; margin: 0; line-height: 2rem;">
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Certificação de conteúdo online</li>
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Relatórios em conformidade legal</li>
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Cadeia de custódia preservada</li>
+        </ul>
+    </div>
+    
+    <div class="split-right">
+        <div class="auth-card">
+            <h2>Crie sua conta</h2>
+            <p class="auth-subtitle">Preencha os dados abaixo para acessar a plataforma.</p>
+
+            <form action="/cadastrar" method="post">
+                
+                <div class="selectable-grid">
+                    <div class="select-card active" id="card_comum" onclick="selecionarTipo('comum')">
+                        <div class="select-card-title">Usuário Comum</div>
+                    </div>
+                    <div class="select-card" id="card_advogado" onclick="selecionarTipo('advogado')">
+                        <div class="select-card-title">Advogado / OAB</div>
+                    </div>
+                </div>
+                <input type="hidden" name="tipo" id="tipo_usuario" value="comum">
+
+                <div class="form-group">
+                    <label class="form-label">Nome Completo</label>
+                    <input type="text" name="nome_completo" class="form-input" placeholder="Seu nome completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" name="email" class="form-input" placeholder="seu.email@exemplo.com" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">CPF</label>
+                        <input type="text" name="cpf" class="form-input" placeholder="000.000.000-00" required>
+                    </div>
+                    <div class="form-group" id="grupo_oab" style="display: none;">
+                        <label class="form-label">Número OAB</label>
+                        <input type="text" name="numero_oab" class="form-input" placeholder="12345/BA">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Senha</label>
+                    <input type="password" name="senha" class="form-input" placeholder="••••••" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Concluir Cadastro</button>
+            </form>
+
+            <p style="text-align: center;">Já tem uma conta? <a href="/">Faça login</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Nome da função alterado para bater com o 'onclick' dos cards
+function selecionarTipo(perfil) {
+    // Atualiza o valor do input hidden para enviar ao FastAPI
+    document.getElementById('tipo_usuario').value = perfil;
+    
+    // Alterna a classe 'active' entre os cards visuais
+    document.getElementById('card_comum').classList.toggle('active', perfil === 'comum');
+    document.getElementById('card_advogado').classList.toggle('active', perfil === 'advogado');
+    
+    // Mostra ou esconde o campo da OAB de forma automática
+    document.getElementById('grupo_oab').style.display = (perfil === 'advogado') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

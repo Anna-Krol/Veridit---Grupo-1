@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block main_layout %}
+<div class="split-container">
+    <div class="split-left">
+        <h1>Veridit</h1>
+              
+        <ul style="list-style: none; padding: 0; margin: 0; line-height: 2rem;">
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Certificação de conteúdo online</li>
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Relatórios em conformidade legal</li>
+            <li><span style="color: #caaf6b; margin-right: 8px;">✓</span> Cadeia de custódia preservada</li>
+        </ul>
+    </div>
+    
+    <div class="split-right">
+        <div class="auth-card">
+            <h2>Bem-vindo</h2>
+            <p class="auth-subtitle">Acesse sua conta para gerenciar evidências.</p>
+            
+            <div id="erro-login" class="alert-error" style="display: none;">
+                <span class="alert-icon">⚠️</span>
+                <span class="alert-message">E-mail ou senha inválidos!</span>
+            </div>
+            
+            <form id="form-login" action="/login" method="post">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-input" placeholder="eduardo.almeida@veridit.com.br" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Senha</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" name="senha" id="senha_input" class="form-input" placeholder="••••••" required style="padding-right: 40px; width: 100%;">
+                        <span id="olho_icone" onclick="alternarVisibilidadeSenha()" style="position: absolute; right: 15px; cursor: pointer; user-select: none; font-size: 1.1rem; opacity: 0.6;">👁️</span>
+                    </div>
+                </div>
+
+                <div style="text-align: left; margin-top: -5px; margin-bottom: 15px;">
+                    <a href="/recuperar" style="font-size: 0.85rem; color: #666; text-decoration: none;">Esqueci minha senha</a>
+                </div>
+
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+        </div>
+        <p style="margin-top: 15px; text-align: center;">Não tem uma conta? <a href="/cadastro">Criar conta</a></p>
+    </div>
+</div>
+
+<script>
+function alternarVisibilidadeSenha() {
+    const senhaInput = document.getElementById('senha_input');
+    const olhoIcone = document.getElementById('olho_icone');
+    
+    if (senhaInput.type === 'password') {
+        senhaInput.type = 'text';
+        olhoIcone.textContent = '👁️‍🗨️';
+        olhoIcone.style.opacity = '1';
+    } else {
+        senhaInput.type = 'password';
+        olhoIcone.textContent = '👁️';
+        olhoIcone.style.opacity = '0.6';
+    }
+}
+
+// NOVO SCRIPT: Envia os dados e faz a notificação aparecer sem recarregar a tela
+document.getElementById('form-login').addEventListener('submit', async function(e) {
+    e.preventDefault(); // Impede a página de recarregar e dar tela preta
+    
+    const erroDiv = document.getElementById('erro-login');
+    erroDiv.style.display = 'none'; // Esconde se já houver um erro antigo na tela
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            body: formData
+        });
+        
+        // Se o login for um sucesso, o Python redireciona para a tela logada
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else if (response.ok) {
+            window.location.href = '/capture';
+        } else {
+            // Se o Python devolver erro, mostra a notificação na hora
+            erroDiv.style.display = 'flex';
+        }
+    } catch (error) {
+        erroDiv.style.display = 'flex';
+    }
+});
+</script>
+{% endblock %}
