@@ -1,0 +1,72 @@
+{% extends "base_painel.html" %}
+{% block main_layout %}
+<style>
+    .pricing-header { text-align: center; margin-bottom: 40px; }
+    .cards-container { display: flex; gap: 20px; justify-content: center; align-items: flex-end; }
+    .card-plano { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 30px; width: 30%; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left; position: relative; }
+    .card-destaque { border: 2px solid #0056b3; transform: scale(1.05); box-shadow: 0 8px 15px rgba(0,86,179,0.1); }
+    .badge-popular { background: #0056b3; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-weight: bold; }
+    .preco { font-size: 2.5em; font-weight: bold; color: #333; margin: 10px 0 0 0; }
+    .sub-preco { color: #888; font-size: 0.9em; margin-bottom: 20px; }
+    .lista-beneficios { list-style: none; padding: 0; margin-bottom: 30px; }
+    .lista-beneficios li { margin-bottom: 10px; color: #555; }
+    .lista-beneficios li::before { content: "✓ "; color: #28a745; font-weight: bold; }
+    .btn-selecionar { display: block; text-align: center; background: #f8f9fa; border: 1px solid #ddd; color: #333; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold; transition: 0.3s; }
+    .btn-selecionar:hover { background: #e2e6ea; }
+    .card-destaque .btn-selecionar { background: #0056b3; color: white; border: none; }
+    .card-destaque .btn-selecionar:hover { background: #004494; }
+
+     
+</style>
+
+<div class="pricing-header">
+    <h2>Adquirir Créditos</h2>
+    <p style="color: #666;">Escolha o plano ideal para suas necessidades</p>
+    <p style="color: #888; font-size: 0.9em;"><strong>1 Escolher Plano</strong> &mdash; <span style="color: #ccc;">2 Dados de Faturamento</span> &mdash; <span style="color: #ccc;">3 Pagamento</span></p>
+</div>
+
+<div class="cards-container">
+    <div class="card-plano">
+        <h3 style="margin-top: 0;">Básico</h3>
+        <p class="preco">R$ 99.90</p>
+        <p class="sub-preco">R$ 9.99 por crédito</p>
+        <p style="font-weight: bold;">10 Créditos</p>
+        <ul class="lista-beneficios">
+            <li>10 Capturas</li>
+            <li>Suporte por Email</li>
+            <li>Validade de 30 dias</li>
+        </ul>
+        <a href="/faturamento?pacote=basico" class="btn-selecionar">Selecionar</a>
+    </div>
+
+    <div class="card-plano card-destaque">
+        <div class="badge-popular">Mais Popular</div>
+        <h3 style="margin-top: 0;">Médio</h3>
+        <p class="preco">R$ 249.90</p>
+        <p class="sub-preco">R$ 8.33 por crédito</p>
+        <p style="font-weight: bold;">30 Créditos</p>
+        <ul class="lista-beneficios">
+            <li>30 Capturas</li>
+            <li>Suporte Prioritário</li>
+            <li>Validade de 60 dias</li>
+            <li>Relatórios Personalizados</li>
+        </ul>
+        <a href="/faturamento?pacote=medio" class="btn-selecionar">Selecionar</a>
+    </div>
+
+    <div class="card-plano">
+        <h3 style="margin-top: 0;">Premium</h3>
+        <p class="preco">R$ 699.90</p>
+        <p class="sub-preco">R$ 6.99 por crédito</p>
+        <p style="font-weight: bold;">100 Créditos</p>
+        <ul class="lista-beneficios">
+            <li>100 Capturas</li>
+            <li>Suporte 24/7</li>
+            <li>Validade de 90 dias</li>
+            <li>Relatórios Avançados</li>
+            <li>API de Integração</li>
+        </ul>
+        <a href="/faturamento?pacote=premium" class="btn-selecionar">Selecionar</a>
+    </div>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware # Importe isto!
+from business.models.billing_models import PACOTES_DISPONIVEIS
 import os
 import sqlite3
 import yagmail
@@ -98,7 +99,7 @@ async def exibir_dashboard(request: Request):
         
     dados_usuario = {
         "nome": dados_banco["nome"],
-        "email": usuario_email,
+        #"email": usuario_email,
         "creditos": 0, # Como é novo, começa com 0 ou o padrão do seu sistema
         "total_registros": 0,
         "este_mes": 0
@@ -111,6 +112,18 @@ async def exibir_dashboard(request: Request):
         request=request,
         name="dashboard.html",
         context={"usuario": dados_usuario, "registros": registros}
+    )
+@app.get("/dashboard")
+async def tela_dashboard(request: Request):
+    # Trava de segurança: só entra se estiver logado
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={"usuario_email": usuario_email}
     )
 
 # -------------------------------------------------------------------------
@@ -191,3 +204,90 @@ async def rota_logout():
     await auth_manager.sair_sistema()
     return RedirectResponse(url="/", status_code=303)
 
+# 1. Rota para exibir a nova tela de seleção de planos
+@app.get("/comprar-creditos")
+async def tela_comprar_creditos(request: Request):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Busca os dados reais do usuário (igual ao dashboard)
+    dados_banco = buscar_usuario_por_email(usuario_email)
+    dados_usuario = {
+        "nome": dados_banco["nome"],
+        "creditos": 0  # Adicione a busca real de créditos aqui no futuro
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="planos.html",
+        context={"usuario": dados_usuario} # Enviamos a variável para a tela
+    )
+
+# 2. Rota para exibir o formulário após escolher o plano
+@app.get("/faturamento")
+async def tela_faturamento(request: Request, pacote: str):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Busca os dados reais do usuário
+    dados_banco = buscar_usuario_por_email(usuario_email)
+    dados_usuario = {
+        "nome": dados_banco["nome"],
+        "creditos": 0
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="faturamento.html",
+        context={
+            "pacote_escolhido": pacote,
+            "usuario": dados_usuario # Enviamos a variável para a tela
+        }
+    )
+
+@app.post("/processar-compra")
+async def processar_compra(
+    request: Request,
+    pacote_selecionado: str = Form(...),
+    nome_faturamento: str = Form(...),
+    cpf_faturamento: str = Form(...),
+    telefone: str = Form(...),
+    cep: str = Form(...),
+    endereco: str = Form(...),
+    numero: str = Form(...),
+    complemento: str = Form(None),
+    bairro: str = Form(...),
+    cidade: str = Form(...),
+    estado: str = Form(...)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        raise HTTPException(status_code=401, detail="Não autorizado")
+
+    pacote = PACOTES_DISPONIVEIS.get(pacote_selecionado)
+    if not pacote:
+        raise HTTPException(status_code=400, detail="Pacote inválido")
+
+    valor_total = pacote.quantidade_creditos * pacote.valor_por_credito
+
+    # Monta o dicionário para persistência
+    dados_compra = {
+        "email_usuario": usuario_email,
+        "pacote": pacote.nome,
+        "qtd": pacote.quantidade_creditos,
+        "valor": valor_total,
+        "nome": nome_faturamento,
+        "cpf": cpf_faturamento,
+        "cep": cep,
+        "endereco": f"{endereco}, {numero} - {complemento or ''} - {bairro}",
+        "cidade": cidade,
+        "estado": estado
+    }
+    
+    # Salva no banco de dados
+    registrar_compra_db(dados_compra)
+    
+    # Redireciona para o próximo passo (REQ 06 - Pagamento)
+    return RedirectResponse(url=f"/pagamento?pacote={pacote_selecionado}", status_code=303)
