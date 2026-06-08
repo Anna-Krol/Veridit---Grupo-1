@@ -1,9 +1,30 @@
 {% extends "base_painel.html" %}
+
 {% block main_layout %}
 <style>
     .pricing-header { text-align: center; margin-bottom: 40px; }
-    .cards-container { display: flex; gap: 20px; justify-content: center; align-items: flex-end; }
-    .card-plano { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 30px; width: 30%; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left; position: relative; }
+    
+    /* AS NOVAS REGRAS CSS ENTRARAM AQUI DENTRO DO <style> */
+    .cards-container { 
+        display: flex; 
+        gap: 20px; 
+        justify-content: center; 
+        align-items: stretch; 
+        flex-wrap: wrap; 
+    }
+    .card-plano { 
+        background: white; 
+        border: 1px solid #e0e0e0; 
+        border-radius: 8px; 
+        padding: 30px; 
+        width: 100%; 
+        max-width: 300px; 
+        min-width: 250px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        text-align: left; 
+        position: relative; 
+    }
+    
     .card-destaque { border: 2px solid #0056b3; transform: scale(1.05); box-shadow: 0 8px 15px rgba(0,86,179,0.1); }
     .badge-popular { background: #0056b3; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8em; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-weight: bold; }
     .preco { font-size: 2.5em; font-weight: bold; color: #333; margin: 10px 0 0 0; }
@@ -15,8 +36,6 @@
     .btn-selecionar:hover { background: #e2e6ea; }
     .card-destaque .btn-selecionar { background: #0056b3; color: white; border: none; }
     .card-destaque .btn-selecionar:hover { background: #004494; }
-
-     
 </style>
 
 <div class="pricing-header">

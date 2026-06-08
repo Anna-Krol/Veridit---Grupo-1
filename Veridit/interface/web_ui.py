@@ -1,10 +1,12 @@
 # interface/web_ui.py
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware # Importe isto!
 from business.models.billing_models import PACOTES_DISPONIVEIS
+from infrastructure.repository import UsuarioRepository
+from business.user_service import UserService
 import os
 import sqlite3
 import yagmail
@@ -13,7 +15,7 @@ import yagmail
 # Imports das suas camadas internas de negócio
 from persistence.repositories_db import RepositoriesDB
 from business.identity_auth_manager import IdentityAuthManager
-from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email
+from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email, registrar_compra_db
 
 app = FastAPI(title="Veridit Platform")
 app.add_middleware(SessionMiddleware, secret_key="uma-chave-muito-secreta-e-longa-para-o-projeto-veridit")
@@ -39,6 +41,9 @@ auth_manager = IdentityAuthManager(repositories_db=db)
 
 # Estado de sessão simulado
 sessao_atual = {"id": None, "email_usuario": "eduardo.almeida@ufba.br"}
+def get_user_service():
+    repo = UsuarioRepository()
+    return UserService(repo)
 
 # -------------------------------------------------------------------------
 # ROTAS DO FRONT-END (GET) - RENDERIZAM OS ARQUIVOS HTML EXTERNOS
@@ -84,47 +89,33 @@ async def pagina_mudar_senha(token: str, request: Request):
     )
 
 @app.get("/dashboard")
-async def exibir_dashboard(request: Request):
+async def exibir_dashboard(
+    request: Request,
+    user_service: UserService = Depends(get_user_service) # A injeção de dependência entra aqui!
+):
     usuario_email = request.session.get("usuario_logado")
-    
     if not usuario_email:
         return RedirectResponse(url="/", status_code=303)
     
-    # Busca os dados REAIS do usuário no SQLite
-    dados_banco = buscar_usuario_por_email(usuario_email)
+    # Veja como fica limpo: pedimos os dados (já com os créditos) direto ao serviço!
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
     
-    if not dados_banco:
-        # Segurança: se o email sumiu do banco por algum motivo, desloga
+    if not dados_usuario:
         return RedirectResponse(url="/", status_code=303)
-        
-    dados_usuario = {
-        "nome": dados_banco["nome"],
-        #"email": usuario_email,
-        "creditos": 0, # Como é novo, começa com 0 ou o padrão do seu sistema
-        "total_registros": 0,
-        "este_mes": 0
-    }
-    
-    # LISTA VAZIA: Como você não tem registros salvos ainda
-    registros = []
 
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"usuario": dados_usuario, "registros": registros}
+        context={"usuario": dados_usuario, "registros": []}
     )
-@app.get("/dashboard")
-async def tela_dashboard(request: Request):
-    # Trava de segurança: só entra se estiver logado
-    usuario_email = request.session.get("usuario_logado")
-    if not usuario_email:
-        return RedirectResponse(url="/", status_code=303)
-        
-    return templates.TemplateResponse(
-        request=request,
-        name="dashboard.html",
-        context={"usuario_email": usuario_email}
-    )
+
+@app.get("/sair")
+async def sair_do_sistema(request: Request):
+    # Remove o usuário logado da sessão (destrói o cookie)
+    request.session.pop("usuario_logado", None)
+    
+    # Redireciona o usuário de volta para a tela de login (/)
+    return RedirectResponse(url="/", status_code=303)
 
 # -------------------------------------------------------------------------
 # PROCESSADORES LÓGICOS (POST) - COMUNICAM COM O BACKEND E REDIRECIONAM
@@ -152,24 +143,19 @@ async def rota_cadastrar(
     
     return RedirectResponse(url="/", status_code=303)
 
-@app.post("/login")
-async def rota_login(request: Request, email: str = Form(...), senha: str = Form(...)):
-    # Limpa espaços em branco e força letras minúsculas no e-mail recebido
-    email_limpo = email.strip().lower()
-    senha_limpa = senha.strip()
-    
-    print(f"DEBUG LOGIN: Tentando logar com email='{email_limpo}'")
-    
-    # Passamos os dados já limpos para a função de validação
-    if validar_login(email_limpo, senha_limpa):
-        # Salva o e-mail padronizado (minúsculo) na sessão para buscar no dashboard depois
-        request.session["usuario_logado"] = email_limpo
-        print("DEBUG LOGIN: Login efetuado com sucesso! Redirecionando...")
+@app.post("/logar")
+async def processar_login(
+    request: Request, 
+    email: str = Form(...), 
+    senha: str = Form(...),
+    user_service: UserService = Depends(get_user_service) # A mágica da Inversão de Dependência acontece aqui!
+):
+    # O Controller pergunta ao Serviço se pode logar
+    if user_service.autenticar_usuario(email, senha):
+        request.session["usuario_logado"] = email
         return RedirectResponse(url="/dashboard", status_code=303)
-    else:
-        # Executado estritamente se o e-mail não existir ou a senha estiver incorreta
-        print(f"DEBUG LOGIN: Falha nas credenciais para o e-mail '{email_limpo}'")
-        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
+    return templates.TemplateResponse(request=request, name="login.html", context={"erro": "Email ou senha incorretos."})
 
 @app.post("/recuperar")
 async def processar_recuperacao(email: str = Form(...)):
@@ -204,25 +190,6 @@ async def rota_logout():
     await auth_manager.sair_sistema()
     return RedirectResponse(url="/", status_code=303)
 
-# 1. Rota para exibir a nova tela de seleção de planos
-@app.get("/comprar-creditos")
-async def tela_comprar_creditos(request: Request):
-    usuario_email = request.session.get("usuario_logado")
-    if not usuario_email:
-        return RedirectResponse(url="/", status_code=303)
-        
-    # Busca os dados reais do usuário (igual ao dashboard)
-    dados_banco = buscar_usuario_por_email(usuario_email)
-    dados_usuario = {
-        "nome": dados_banco["nome"],
-        "creditos": 0  # Adicione a busca real de créditos aqui no futuro
-    }
-
-    return templates.TemplateResponse(
-        request=request,
-        name="planos.html",
-        context={"usuario": dados_usuario} # Enviamos a variável para a tela
-    )
 
 # 2. Rota para exibir o formulário após escolher o plano
 @app.get("/faturamento")
@@ -291,3 +258,112 @@ async def processar_compra(
     
     # Redireciona para o próximo passo (REQ 06 - Pagamento)
     return RedirectResponse(url=f"/pagamento?pacote={pacote_selecionado}", status_code=303)
+
+
+@app.get("/pagamento")
+async def tela_pagamento(request: Request, pacote: str = "basico"):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Busca os dados reais do usuário para a barra lateral
+    dados_banco = buscar_usuario_por_email(usuario_email)
+    dados_usuario = {
+        "nome": dados_banco["nome"] if dados_banco else "Usuário",
+        "creditos": 0
+    }
+
+    # Calcula o valor total com base no pacote selecionado
+    pacote_obj = PACOTES_DISPONIVEIS.get(pacote)
+    valor = (pacote_obj.quantidade_creditos * pacote_obj.valor_por_credito) if pacote_obj else 0.0
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pagamento.html",
+        context={
+            "usuario": dados_usuario,
+            "pacote_escolhido": pacote,
+            "valor_total": valor
+        }
+    )
+
+# Rota para simular o pagamento e creditar na conta
+@app.post("/simular-pagamento")
+async def simular_pagamento(
+    request: Request, 
+    pacote_selecionado: str = Form(...),
+    user_service: UserService = Depends(get_user_service) # Injeção de Dependência
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # O Controller delega a regra de negócio para o Serviço
+    user_service.processar_pagamento_aprovado(usuario_email, pacote_selecionado, PACOTES_DISPONIVEIS)
+    
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+# 1. Rota de Planos
+
+@app.get("/comprar-creditos")
+async def tela_comprar_creditos(
+    request: Request,
+    user_service: UserService = Depends(get_user_service)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Pega os dados reais e atualizados do banco
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+
+   
+    return templates.TemplateResponse(
+        request=request,
+        name="planos.html",
+        # O SEGREDO ESTÁ AQUI: Enviando os dados para o HTML
+        context={"usuario": dados_usuario} 
+    )
+
+# 2. Rota de Faturamento
+@app.get("/faturamento")
+async def tela_faturamento(
+    request: Request, 
+    pacote: str,
+    user_service: UserService = Depends(get_user_service) # Adicionamos o serviço aqui
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Pega os dados reais e atualizados do banco
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="faturamento.html",
+        context={"pacote_escolhido": pacote, "usuario": dados_usuario}
+    )
+
+# 3. Rota de Pagamento
+@app.get("/pagamento")
+async def tela_pagamento(
+    request: Request, 
+    pacote: str = "basico",
+    user_service: UserService = Depends(get_user_service) # Adicionamos o serviço aqui
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Pega os dados reais e atualizados do banco
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+
+    pacote_obj = PACOTES_DISPONIVEIS.get(pacote)
+    valor = (pacote_obj.quantidade_creditos * pacote_obj.valor_por_credito) if pacote_obj else 0.0
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pagamento.html",
+        context={"usuario": dados_usuario, "pacote_escolhido": pacote, "valor_total": valor}
+    )
