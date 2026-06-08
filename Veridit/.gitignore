@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
-usuarios.db
+usuarios.db__pycache__/
+*.db
+.venv/
