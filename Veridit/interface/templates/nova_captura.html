@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veridit - Nova Captura</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; background-color: #F8F7F4; min-height: 100vh; }
+        
+        /* Estilos da Sidebar (iguais ao dashboard) */
+        .sidebar { width: 260px; background-color: #1A233A; color: white; display: flex; flex-direction: column; justify-content: space-between; padding: 30px 20px; }
+        .logo-area h1 { color: #F2C94C; font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+        .logo-area span { color: #828282; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .user-card { background-color: #242F4D; padding: 15px; border-radius: 8px; margin-top: 30px; }
+        .user-name { font-size: 14px; font-weight: 600; }
+        .user-email { font-size: 11px; color: #A4B3CD; margin-bottom: 10px; }
+        .user-credits { font-size: 12px; color: #F2C94C; font-weight: bold; }
+        .menu-list { list-style: none; margin-top: 40px; flex-grow: 1; }
+        .menu-item a { display: block; padding: 12px 15px; color: #A4B3CD; text-decoration: none; border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
+        .menu-item.active a, .menu-item a:hover { background-color: #2B395B; color: white; }
+        .btn-logout { color: #EB5757; text-decoration: none; font-size: 14px; padding: 10px 15px; display: inline-block; }
+
+        /* Estilos específicos do Formulário de Captura */
+        .main-content { flex-grow: 1; padding: 40px; display: flex; flex-direction: column; align-items: center; }
+        .form-container { background: white; padding: 40px; border-radius: 10px; border: 1px solid #E0E0E0; width: 100%; max-width: 600px; margin-top: 20px; }
+        .form-container h2 { color: #1A233A; margin-bottom: 25px; text-align: center; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 14px; color: #1A233A; font-weight: 600; margin-bottom: 8px; }
+        .form-group input[type="text"], .form-group input[type="url"] { width: 100%; padding: 12px; border: 1px solid #E0E0E0; border-radius: 6px; font-size: 14px; }
+        
+        .options-group { display: flex; gap: 20px; margin-bottom: 25px; }
+        .option-card { flex: 1; border: 2px solid #E0E0E0; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .option-card:hover { border-color: #1A233A; }
+        .option-card input[type="radio"] { margin-bottom: 10px; transform: scale(1.2); }
+        .option-card span { display: block; font-size: 14px; font-weight: 600; color: #1A233A; }
+        .option-card small { color: #828282; font-size: 12px; }
+
+        .btn-submit { width: 100%; background-color: #1A233A; color: white; border: none; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-submit:hover { background-color: #2B395B; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div>
+            <div class="logo-area">
+                <h1>Veridit</h1>
+                <span>EVIDÊNCIAS DIGITAIS</span>
+            </div>
+            <div class="user-card">
+                <div class="user-name">Usuário Teste</div>
+                <div class="user-credits">🪙 45 créditos</div>
+            </div>
+            <ul class="menu-list">
+                <li class="menu-item"><a href="/dashboard">📊 Dashboard</a></li>
+                <li class="menu-item"><a href="/registros">📜 Registros</a></li>
+                <li class="menu-item active"><a href="#">+ Nova Captura</a></li>
+            </ul>
+        </div>
+        <a href="/" class="btn-logout">🔕 Sair</a>
+    </aside>
+
+    <main class="main-content">
+        <div class="form-container">
+            <h2>Iniciar Nova Captura</h2>
+            
+            <form action="/api/iniciar_captura" method="POST">
+                
+                <div class="form-group">
+                    <label>URL do Site</label>
+                    <input type="url" name="url_alvo" placeholder="https://exemplo.com/evidencia" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Título do Registro</label>
+                    <input type="text" name="titulo" placeholder="Ex: Post difamatório no Twitter" required>
+                </div>
+
+                <div class="options-group">
+                    <label class="option-card">
+                        <input type="radio" name="tipo_captura" value="FOTO" required checked>
+                        <span>Captura de Tela</span>
+                        <small>1 CRÉDITO</small>
+                    </label>
+                    
+                    <label class="option-card">
+                        <input type="radio" name="tipo_captura" value="VIDEO" required>
+                        <span>Gravação de Vídeo</span>
+                        <small>3 CRÉDITOS</small>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-submit">Iniciar Captura</button>
+            </form>
+
+        </div>
+    </main>
+
+</body>
+</html>

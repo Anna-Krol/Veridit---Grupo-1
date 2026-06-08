@@ -14,6 +14,13 @@ from persistence.repositories_db import RepositoriesDB
 from business.identity_auth_manager import IdentityAuthManager
 from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email
 
+# Import para captura
+import webbrowser
+import uuid
+import time
+from business.capture_orchestrator import CaptureOrchestrator
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+
 app = FastAPI(title="Veridit Platform")
 app.add_middleware(SessionMiddleware, secret_key="uma-chave-muito-secreta-e-longa-para-o-projeto-veridit")
 
@@ -35,6 +42,9 @@ templates = Jinja2Templates(directory=TEMPLATES_PATH)
 # Inicialização das instâncias de negócio do backend
 db = RepositoriesDB()
 auth_manager = IdentityAuthManager(repositories_db=db)
+
+# Motor de captura
+motor_captura = CaptureOrchestrator()
 
 # Estado de sessão simulado
 sessao_atual = {"id": None, "email_usuario": "eduardo.almeida@ufba.br"}
@@ -96,22 +106,86 @@ async def exibir_dashboard(request: Request):
         # Segurança: se o email sumiu do banco por algum motivo, desloga
         return RedirectResponse(url="/", status_code=303)
         
+    registros_reais = motor_captura.obter_todos_os_registros()
+    
     dados_usuario = {
         "nome": dados_banco["nome"],
         "email": usuario_email,
-        "creditos": 0, # Como é novo, começa com 0 ou o padrão do seu sistema
-        "total_registros": 0,
-        "este_mes": 0
+        "creditos": 45, 
+        "total_registros": len(registros_reais), 
+        "este_mes": len(registros_reais)
     }
-    
-    # LISTA VAZIA: Como você não tem registros salvos ainda
-    registros = []
 
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"usuario": dados_usuario, "registros": registros}
+        context={"usuario": dados_usuario, "registros": registros_reais}
     )
+
+@app.get("/nova-captura")
+async def exibir_nova_captura(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="nova_captura.html",
+        context={"request": request}
+    )
+
+@app.get("/sucessocap")
+async def tela_sucessocap(request: Request, id: str):
+    return templates.TemplateResponse(
+        request=request,
+        name="sucessocap.html",
+        context={"request": request, "id_captura": id}
+    )
+
+@app.get("/registros")
+async def exibir_todos_os_registros(request: Request):
+    usuario_email = request.session.get("usuario_logado")
+    
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+    
+    dados_banco = buscar_usuario_por_email(usuario_email)
+    
+    if not dados_banco:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Puxa o histórico real do seu motor
+    registros_reais = motor_captura.obter_todos_os_registros()
+    
+    dados_usuario = {
+        "nome": dados_banco["nome"],
+        "email": usuario_email,
+        "creditos": 45,
+        "total_registros": len(registros_reais),
+        "este_mes": len(registros_reais)
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registros.html", # Renderiza a nova tela que criaremos abaixo
+        context={"usuario": dados_usuario, "registros": registros_reais}
+    )
+
+@app.get("/api/download/{captura_id}")
+async def api_download_arquivo(captura_id: str):
+    """
+    Busca o arquivo gerado na pasta raiz e força o download no navegador.
+    """
+    # Primeiro tentamos procurar o ZIP (se foi gerado por vídeo)
+    nome_zip = f"{captura_id}.zip"
+    if os.path.exists(nome_zip):
+        print(f"📦 Entregando artefato ZIP para download: {nome_zip}")
+        return FileResponse(path=nome_zip, filename=nome_zip, media_type="application/zip")
+        
+    # Se não houver ZIP, tentamos procurar o PNG (se foi gerado por foto)
+    nome_png = f"{captura_id}.png"
+    if os.path.exists(nome_png):
+        print(f"📸 Entregando artefato PNG para download: {nome_png}")
+        return FileResponse(path=nome_png, filename=nome_png, media_type="image/png")
+        
+    # Se nenhum arquivo físico existir na máquina
+    raise HTTPException(status_code=404, detail="O arquivo desta evidência ainda está sendo processado ou não foi encontrado.")
 
 # -------------------------------------------------------------------------
 # PROCESSADORES LÓGICOS (POST) - COMUNICAM COM O BACKEND E REDIRECIONAM
@@ -191,3 +265,41 @@ async def rota_logout():
     await auth_manager.sair_sistema()
     return RedirectResponse(url="/", status_code=303)
 
+
+# Rota motor de captura
+@app.post("/api/iniciar_captura")
+async def api_iniciar_captura(
+    url_alvo: str = Form(...),
+    titulo: str = Form(...),
+    tipo_captura: str = Form(...) # Espera receber "FOTO" ou "VIDEO"
+):
+    print(f"🎬 Recebida requisição de captura: {tipo_captura} para a URL: {url_alvo}")
+    
+    # 1. Gera um ID único para essa nova evidência
+    novo_id = f"REC-{str(uuid.uuid4())[:8].upper()}"
+
+    # 2. Abre a URL solicitada no navegador padrão do usuário
+    print(f"🌐 Abrindo navegador na URL: {url_alvo}")
+    webbrowser.open(url_alvo)
+    
+    # Dá um tempo para o navegador abrir e carregar a página (3 segundos)
+    time.sleep(3)
+
+    # 3. Direciona para o fluxo correto com base no tipo escolhido
+    if tipo_captura == "FOTO":
+        # Chama a função de captura única (você precisa garantir que ela existe no Orchestrator)
+        motor_captura.iniciar_fluxo_foto(novo_id, titulo)
+        print("📸 Tirando foto da tela...")
+        
+    elif tipo_captura == "VIDEO":
+        # Chama o fluxo de vídeo (que você já implementou e testou!)
+        motor_captura.iniciar_fluxo_video(captura_id=novo_id, titulo=titulo)
+        print("🔴 Gravação de vídeo iniciada. Rodando em segundo plano...")
+        
+        # Simulação: Como estamos em ambiente local e precisamos finalizar a gravação 
+        # automaticamente para gerar o ZIP (já que não criamos o botão "Parar" na interface web ainda):
+        # Vamos deixar gravando por 10 segundos e depois parar.
+        time.sleep(10)
+        motor_captura.finalizar_fluxo_video(captura_id=novo_id)
+
+    return RedirectResponse(url=f"/sucessocap?id={novo_id}", status_code=303)
