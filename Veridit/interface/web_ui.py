@@ -150,7 +150,7 @@ async def exibir_todos_os_registros(request: Request):
     if not dados_banco:
         return RedirectResponse(url="/", status_code=303)
         
-    # Puxa o histórico real do seu motor
+   
     registros_reais = motor_captura.obter_todos_os_registros()
     
     dados_usuario = {
@@ -285,20 +285,18 @@ async def api_iniciar_captura(
     # Dá um tempo para o navegador abrir e carregar a página (3 segundos)
     time.sleep(3)
 
-    # 3. Direciona para o fluxo correto com base no tipo escolhido
+    
     if tipo_captura == "FOTO":
-        # Chama a função de captura única (você precisa garantir que ela existe no Orchestrator)
+        
         motor_captura.iniciar_fluxo_foto(novo_id, titulo)
         print("📸 Tirando foto da tela...")
         
     elif tipo_captura == "VIDEO":
-        # Chama o fluxo de vídeo (que você já implementou e testou!)
+        
         motor_captura.iniciar_fluxo_video(captura_id=novo_id, titulo=titulo)
         print("🔴 Gravação de vídeo iniciada. Rodando em segundo plano...")
         
-        # Simulação: Como estamos em ambiente local e precisamos finalizar a gravação 
-        # automaticamente para gerar o ZIP (já que não criamos o botão "Parar" na interface web ainda):
-        # Vamos deixar gravando por 10 segundos e depois parar.
+        
         time.sleep(10)
         motor_captura.finalizar_fluxo_video(captura_id=novo_id)
 

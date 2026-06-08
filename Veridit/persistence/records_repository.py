@@ -1,6 +1,6 @@
 class RecordsRepository:
     def __init__(self):
-        # Simulando a tabela de capturas do banco de dados
+        
         self.banco_de_dados = {}
 
     def salvar_nova_captura(self, captura_id, titulo, data_inicio, tipo="N/A"):

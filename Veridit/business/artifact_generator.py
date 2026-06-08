@@ -25,6 +25,6 @@ class ArtifactGenerator:
                 
         print(f"✅ Arquivo ZIP gerado com sucesso: {zip_name}")
         
-        # Se houver uma função de aviso (como atualizar o banco), chama ela aqui
+
         if callback:
             callback()
