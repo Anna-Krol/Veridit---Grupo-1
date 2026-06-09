@@ -9,6 +9,10 @@ class UserService:
     def autenticar_usuario(self, email: str, senha_informada: str) -> bool:
         usuario = self.repository.buscar_por_email(email)
         # Regra de negócio: Verifica se o usuário existe e se a senha bate
+        if not usuario:
+            print(f"DEBUG SERVICE: O e-mail '{email}' não foi encontrado no banco de dados.")
+            return False
+    
         if usuario and usuario["senha"] == senha_informada:
             return True
         return False

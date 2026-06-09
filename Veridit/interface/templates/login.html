@@ -80,8 +80,6 @@ document.getElementById('form-login').addEventListener('submit', async function(
         // Se o login for um sucesso, o Python redireciona para a tela logada
         if (response.redirected) {
             window.location.href = response.url;
-        } else if (response.ok) {
-            window.location.href = '/capture';
         } else {
             // Se o Python devolver erro, mostra a notificação na hora
             erroDiv.style.display = 'flex';
