@@ -2,20 +2,20 @@
 
 echo "🚀 Iniciando o Veridit..."
 
-# Verifica se o ambiente virtual existe. Se não existir, ele cria.
+# Verifica se o ambiente virtual existe. Se não existir, ele cria usando python3.
 if [ ! -d ".venv" ]; then
     echo "📦 Criando ambiente virtual..."
-    python -m venv .venv
+    python3 -m venv .venv
 fi
 
 # Ativa o ambiente virtual
 echo "🔄 Ativando ambiente..."
-source .venv/Scripts/activate || source .venv/bin/activate
+source .venv/bin/activate
 
-# Instala/Atualiza as dependências silenciosamente
+# Instala/Atualiza as dependências silenciosamente usando o pip de dentro do ambiente
 echo "📚 Checando dependências..."
-pip install fastapi uvicorn jinja2 yagmail --quiet
+pip install fastapi uvicorn jinja2 yagmail itsdangerous python-multipart --quiet
 
-# Roda o servidor
+# Roda o servidor usando o python do ambiente virtual
 echo "✅ Servidor rodando! Acesse: http://localhost:8000"
-uvicorn interface.web_ui:app --reload
+python3 -m uvicorn interface.web_ui:app --reload
