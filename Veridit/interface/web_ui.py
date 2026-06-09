@@ -143,14 +143,14 @@ async def rota_cadastrar(
     
     return RedirectResponse(url="/", status_code=303)
 
-@app.post("/logar")
+@app.post("/login")
 async def processar_login(
     request: Request, 
     email: str = Form(...), 
     senha: str = Form(...),
     user_service: UserService = Depends(get_user_service) # A mágica da Inversão de Dependência acontece aqui!
 ):
-    # O Controller pergunta ao Serviço se pode logar
+    
     if user_service.autenticar_usuario(email, senha):
         request.session["usuario_logado"] = email
         return RedirectResponse(url="/dashboard", status_code=303)

@@ -8,21 +8,29 @@ class UsuarioRepository:
         return sqlite3.connect(self.db_path)
 
     def buscar_por_email(self, email: str):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            # Certifique-se de adicionar a coluna creditos na busca!
-            cursor.execute("SELECT nome, email, senha, tipo, creditos FROM usuarios WHERE email = ?", (email,))
-            row = cursor.fetchone()
-            
-            if row:
-                return {
-                    "nome": row[0], 
-                    "email": row[1], 
-                    "senha": row[2], 
-                    "tipo": row[3],
-                    "creditos": row[4] if row[4] is not None else 0
-                }
+        conn = sqlite3.connect('usuarios.db') # Ajuste o caminho se necessário
+        cursor = conn.cursor()
+        
+        # Busca os dados no banco padronizando para minúsculo
+        cursor.execute("SELECT nome, email, senha, tipo, creditos FROM usuarios WHERE LOWER(email) = ?", (email.strip().lower(),))
+        resultado = cursor.fetchone()
+        conn.close()
+        
+        # 🚨 O PONTO CRÍTICO ESTÁ AQUI:
+        # Se o banco retornou None (e-mail não cadastrado), paramos aqui e retornamos None!
+        if resultado is None:
+            print(f"DEBUG REPOSITORY: O e-mail '{email}' não foi localizado no SQLite.")
             return None
+            
+        # SE ENCONTROU, aí sim o código continua para criar o dicionário ou o objeto com segurança:
+        # (Se a sua equipe usa uma classe chamada Usuario, adapte para: return Usuario(...))
+        return {
+            "nome": resultado[0],
+            "email": resultado[1],
+            "senha": resultado[2],
+            "tipo": resultado[3],
+            "creditos": resultado[4]
+        }
     def garantir_coluna_creditos(self):
         # Responsabilidade: Garantir que o banco tem a coluna antes de dar erro
         with self.get_connection() as conn:

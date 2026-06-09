@@ -12,7 +12,8 @@ def inicializar_db():
             email TEXT UNIQUE NOT NULL,
             cpf TEXT UNIQUE NOT NULL,
             senha TEXT NOT NULL,
-            tipo TEXT NOT NULL
+            tipo TEXT NOT NULL,
+            creditos INTEGER DEFAULT 0
         )
     ''')
     # Nova tabela para o REQ 05
