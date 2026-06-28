@@ -43,7 +43,7 @@
             <th>Data/hora início</th>
             <th>Data/hora fim</th>
             <th>Status</th>
-            <th>Detalhes</th>
+            <th style="text-align: center;">Ações</th>
         </tr>
     </thead>
     <tbody>
@@ -59,9 +59,19 @@
                 </span>
             </td>
             <td>
-                <a href="/detalhes/{{ reg.id }}">
-                    <button class="btn-details" style="color: #1A233A; font-weight: bold;">Ver Detalhes</button>
-                </a>
+                <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                    <a href="/detalhes/{{ reg.id }}" style="text-decoration: none;">
+                        <button class="btn-details" style="color: #1A233A; font-weight: bold; padding: 6px 12px;">Ver Detalhes</button>
+                    </a>
+                    
+                    {% if reg.status.lower() == 'concluído' or reg.status.lower() == 'concluido' %}
+                    <a href="/api/download/{{ reg.id }}" style="text-decoration: none;" title="Baixar Evidência">
+                        <button style="background-color: #27AE60; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px;">
+                            Download ↓
+                        </button>
+                    </a>
+                    {% endif %}
+                </div>
             </td>
         </tr>
         {% endfor %}

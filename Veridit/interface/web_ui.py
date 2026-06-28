@@ -24,13 +24,8 @@ from fastapi.responses import FileResponse
 from persistence.repositories_db import RepositoriesDB
 from business.identity_auth_manager import IdentityAuthManager
 from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email
+from interface.database import registrar_compra_db
 
-# Import para captura
-import webbrowser
-import uuid
-import time
-from business.capture_orchestrator import CaptureOrchestrator
-from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 
 app = FastAPI(title="Veridit Platform")
 app.add_middleware(SessionMiddleware, secret_key="uma-chave-muito-secreta-e-longa-para-o-projeto-veridit")

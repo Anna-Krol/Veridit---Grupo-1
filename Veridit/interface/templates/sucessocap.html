@@ -1,29 +1,36 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Captura Concluída - Veridit</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #F8F7F4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .success-card { background: white; padding: 50px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 400px; border: 1px solid #E0E0E0;}
-        h1 { color: #385723; margin-bottom: 10px; }
-        p { color: #828282; margin-bottom: 30px; line-height: 1.5; }
-        .btn { display: block; padding: 15px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-bottom: 15px; transition: 0.3s; }
-        .btn-download { background-color: #1A233A; color: white; }
-        .btn-download:hover { background-color: #2B395B; }
-        .btn-dash { background-color: #F2F2F2; color: #1A233A; }
-        .btn-dash:hover { background-color: #E0E0E0; }
-    </style>
-</head>
-<body>
-    <div class="success-card">
-        <h1 style="font-size: 50px; margin: 0;">✅</h1>
-        <h1>Captura Concluída!</h1>
-        <p>A sua evidência digital foi gerada e criptografada com sucesso no formato ZIP/PNG. O arquivo já está pronto para uso.</p>
-        
-        <a href="/api/download/{{ id_captura }}" class="btn btn-download">⬇️ Baixar Evidência Agora</a>
-        
-        <a href="/dashboard" class="btn btn-dash">Voltar ao Dashboard</a>
+{% extends "base_painel.html" %}
+
+{% block main_layout %}
+<header class="header-dashboard">
+    <div class="welcome-text">
+        <h2>Captura Concluída com Sucesso! 🎉</h2>
+        <p>A sua evidência digital foi processada e salva com segurança.</p>
     </div>
-</body>
-</html>
+</header>
+
+<section class="table-container" style="max-width: 600px; text-align: center; padding: 50px 30px; margin: 0 auto;">
+    
+    <div style="font-size: 60px; margin-bottom: 20px;">✅</div>
+    
+    <h3 style="margin-bottom: 15px; color: #1A233A; font-size: 22px;">Evidência Registrada</h3>
+    
+    <p style="color: #828282; margin-bottom: 30px; line-height: 1.6; font-size: 15px;">
+        A sua solicitação de captura foi finalizada. O arquivo gerado já está empacotado e pronto para uso legal. <br><br>
+        Guarde o número de identificação único deste registro:
+    </p>
+
+    <div style="background-color: #F8F7F4; padding: 15px 30px; border-radius: 8px; border: 2px dashed #A4B3CD; display: inline-block; margin-bottom: 40px;">
+        <strong style="color: #1A233A; font-size: 20px; letter-spacing: 1px;">ID: {{ id_captura }}</strong>
+    </div>
+
+    <div style="display: flex; gap: 15px; justify-content: center;">
+        <a href="/api/download/{{ id_captura }}" style="text-decoration: none;">
+            <button class="btn-new-register" style="background-color: #27AE60;">Baixar Evidência ↓</button>
+        </a>
+        <a href="/registros" style="text-decoration: none;">
+            <button class="btn-details" style="padding: 12px 20px; font-size: 14px;">Ir para Meus Registros</button>
+        </a>
+    </div>
+
+</section>
+{% endblock %}
