@@ -1,9 +1,12 @@
 # interface/web_ui.py
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware # Importe isto!
+from business.models.billing_models import PACOTES_DISPONIVEIS
+from infrastructure.repository import UsuarioRepository
+from business.user_service import UserService
 import os
 import sqlite3
 import yagmail
@@ -56,6 +59,9 @@ motor_captura = CaptureOrchestrator()
 
 # Estado de sessão simulado
 sessao_atual = {"id": None, "email_usuario": "eduardo.almeida@ufba.br"}
+def get_user_service():
+    repo = UsuarioRepository()
+    return UserService(repo)
 
 # -------------------------------------------------------------------------
 # ROTAS DO FRONT-END (GET) - RENDERIZAM OS ARQUIVOS HTML EXTERNOS
@@ -101,17 +107,18 @@ async def pagina_mudar_senha(token: str, request: Request):
     )
 
 @app.get("/dashboard")
-async def exibir_dashboard(request: Request):
+async def exibir_dashboard(
+    request: Request,
+    user_service: UserService = Depends(get_user_service) # A injeção de dependência entra aqui!
+):
     usuario_email = request.session.get("usuario_logado")
-    
     if not usuario_email:
         return RedirectResponse(url="/", status_code=303)
     
-    # Busca os dados REAIS do usuário no SQLite
-    dados_banco = buscar_usuario_por_email(usuario_email)
+    # Veja como fica limpo: pedimos os dados (já com os créditos) direto ao serviço!
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
     
-    if not dados_banco:
-        # Segurança: se o email sumiu do banco por algum motivo, desloga
+    if not dados_usuario:
         return RedirectResponse(url="/", status_code=303)
     
     registros_reais = motor_captura.obter_todos_os_registros()
@@ -169,6 +176,14 @@ async def exibir_todos_os_registros(request: Request):
         context={"usuario": dados_usuario, "registros": registros_reais}
     )
 
+@app.get("/sair")
+async def sair_do_sistema(request: Request):
+    # Remove o usuário logado da sessão (destrói o cookie)
+    request.session.pop("usuario_logado", None)
+    
+    # Redireciona o usuário de volta para a tela de login (/)
+    return RedirectResponse(url="/", status_code=303)
+
 @app.get("/api/download/{captura_id}")
 async def api_download_arquivo(captura_id: str):
     """
@@ -216,23 +231,18 @@ async def rota_cadastrar(
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/login")
-async def rota_login(request: Request, email: str = Form(...), senha: str = Form(...)):
-    # Limpa espaços em branco e força letras minúsculas no e-mail recebido
-    email_limpo = email.strip().lower()
-    senha_limpa = senha.strip()
+async def processar_login(
+    request: Request, 
+    email: str = Form(...), 
+    senha: str = Form(...),
+    user_service: UserService = Depends(get_user_service) # A mágica da Inversão de Dependência acontece aqui!
+):
     
-    print(f"DEBUG LOGIN: Tentando logar com email='{email_limpo}'")
-    
-    # Passamos os dados já limpos para a função de validação
-    if validar_login(email_limpo, senha_limpa):
-        # Salva o e-mail padronizado (minúsculo) na sessão para buscar no dashboard depois
-        request.session["usuario_logado"] = email_limpo
-        print("DEBUG LOGIN: Login efetuado com sucesso! Redirecionando...")
+    if user_service.autenticar_usuario(email, senha):
+        request.session["usuario_logado"] = email
         return RedirectResponse(url="/dashboard", status_code=303)
-    else:
-        # Executado estritamente se o e-mail não existir ou a senha estiver incorreta
-        print(f"DEBUG LOGIN: Falha nas credenciais para o e-mail '{email_limpo}'")
-        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
+    return templates.TemplateResponse(request=request, name="login.html", context={"erro": "Email ou senha incorretos."})
 
 @app.post("/recuperar")
 async def processar_recuperacao(email: str = Form(...)):

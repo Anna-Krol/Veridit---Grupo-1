@@ -1,0 +1,132 @@
+{% extends "base_painel.html" %}
+
+{% block main_layout %}
+<style>
+    .page-header { margin-bottom: 30px; }
+    .page-title { color: #1A233A; font-size: 28px; margin-bottom: 5px; font-weight: bold; }
+    .breadcrumb { color: #828282; font-size: 14px; margin-bottom: 30px; }
+    .breadcrumb span.active { font-weight: bold; color: #1A233A; }
+
+    .payment-container { display: flex; gap: 30px; align-items: flex-start; }
+    
+    /* Cards de layout */
+    .summary-card { background: white; padding: 30px; border-radius: 10px; border: 1px solid #E0E0E0; flex: 1; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+    .methods-card { background: white; padding: 30px; border-radius: 10px; border: 1px solid #E0E0E0; flex: 1.5; box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: center; }
+
+    .section-title { color: #1A233A; font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid #E0E0E0; padding-bottom: 10px; }
+    
+    /* Resumo */
+    .summary-item { display: flex; justify-content: space-between; margin-bottom: 15px; color: #4F4F4F; font-size: 15px;}
+    .summary-total { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #E0E0E0; font-size: 20px; font-weight: bold; color: #1A233A; }
+
+    /* Elementos do PIX */
+    .qr-code-box { background: #f8f9fa; border: 2px solid #E0E0E0; border-radius: 10px; padding: 20px; display: inline-block; margin: 20px 0; }
+    .qr-code-img { width: 180px; height: 180px; background: url('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg') center/cover; margin: 0 auto; }
+
+    .pix-code-container { display: flex; gap: 10px; margin-top: 15px; }
+    .pix-input { flex: 1; padding: 12px; border: 1px solid #D1D1D1; border-radius: 6px; font-size: 13px; color: #828282; background: #f8f9fa; outline: none; }
+    .btn-copy { background-color: #1A233A; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+    .btn-copy:hover { background-color: #2B395B; }
+
+    /* Mercado Pago */
+    .mercado-pago-btn { display: block; width: 100%; background-color: #009EE3; color: white; text-decoration: none; padding: 15px; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 30px; transition: 0.3s; text-align: center;}
+    .mercado-pago-btn:hover { background-color: #0088C4; }
+    
+    /* Botão de simulação de sucesso (Apenas para o MVP/Protótipo) */
+    .btn-simulate { background-color: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 20px; width: 100%; font-size: 14px;}
+    .btn-simulate:hover { background-color: #218838; }
+</style>
+
+<div class="page-header">
+    <h2 class="page-title">Pagamento</h2>
+    <div class="breadcrumb">
+        <span style="color: #ccc;">1 Escolher Plano</span> &mdash; <span style="color: #ccc;">2 Dados de Faturamento</span> &mdash; <span class="active">3 Pagamento</span>
+    </div>
+</div>
+
+<div class="payment-container">
+    <div class="summary-card">
+        <h3 class="section-title">Resumo da Compra</h3>
+        <div class="summary-item">
+            <span>Pacote Selecionado:</span>
+            <strong>{{ pacote_escolhido | capitalize }}</strong>
+        </div>
+        <div class="summary-item">
+            <span>Método de Entrega:</span>
+            <strong>Imediato</strong>
+        </div>
+        <div class="summary-total">
+            <span>Total a pagar:</span>
+            <span>R$ {{ "%.2f"|format(valor_total) }}</span>
+        </div>
+    </div>
+
+    <div class="methods-card">
+        <h3 class="section-title" style="text-align: left;">Pagar com PIX (Veridit)</h3>
+        <p style="color: #828282; font-size: 14px; text-align: left;">Abra o app do seu banco e escaneie o QR Code abaixo:</p>
+        
+        <div class="qr-code-box">
+            <div class="qr-code-img"></div>
+        </div>
+
+        <p style="color: #828282; font-size: 14px; text-align: left; margin-bottom: 5px;">Ou utilize a chave PIX Copia e Cola:</p>
+        <div class="pix-code-container">
+            <input type="text" class="pix-input" value="00020126580014br.gov.bcb.pix0136veridit-exemplo-pix-copia-e-cola" readonly id="pixCode">
+            <button class="btn-copy" onclick="copiarPix()">Copiar</button>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #E0E0E0; margin: 30px 0;">
+
+        <h3 class="section-title" style="text-align: left;">Outras Formas de Pagamento</h3>
+        <a href="#" class="mercado-pago-btn"> Pagar com Mercado Pago</a>
+
+        <form action="/simular-pagamento" method="post" style="margin-top: 20px;">
+            <input type="hidden" name="pacote_selecionado" value="{{ pacote_escolhido }}">
+            <button type="submit" class="btn-simulate">Simular Pagamento Aprovado</button>
+        </form>
+    </div>
+</div>
+<div style="text-align: center; margin-bottom: 15px;">
+    <p style="color: #4F4F4F; font-size: 14px; font-weight: bold;">
+        ⏱️ O QR Code expira em: <span id="timer" style="color: #dc3545; font-size: 18px;">5:00</span>
+    </p>
+</div>
+
+<script>
+    // Função Copiar Pix (A que você já tinha)
+    function copiarPix() {
+        var copyText = document.getElementById("pixCode");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        alert("Código PIX copiado com sucesso!");
+    }
+
+    // Função do Temporizador de 15 Minutos
+    document.addEventListener("DOMContentLoaded", function() {
+        let tempoRestante = 5 * 60; // 15 minutos em segundos
+        const displayTimer = document.getElementById('timer');
+
+        const intervalo = setInterval(function() {
+            const minutos = Math.floor(tempoRestante / 60);
+            let segundos = tempoRestante % 60;
+
+            // Adiciona o zero à esquerda se for menor que 10
+            if (segundos < 10) {
+                segundos = "0" + segundos;
+            }
+
+            displayTimer.textContent = minutos + ":" + segundos;
+
+            if (tempoRestante > 0) {
+                tempoRestante--;
+            } else {
+                clearInterval(intervalo);
+                displayTimer.textContent = "EXPIRADO";
+                displayTimer.style.color = "#828282";
+                alert("O tempo para pagamento expirou. Por favor, gere um novo PIX.");
+            }
+        }, 1000); // 1000 milissegundos = 1 segundo
+    });
+</script>
+{% endblock %}

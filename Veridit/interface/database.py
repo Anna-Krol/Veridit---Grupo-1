@@ -12,7 +12,26 @@ def inicializar_db():
             email TEXT UNIQUE NOT NULL,
             cpf TEXT UNIQUE NOT NULL,
             senha TEXT NOT NULL,
-            tipo TEXT NOT NULL
+            tipo TEXT NOT NULL,
+            creditos INTEGER DEFAULT 0
+        )
+    ''')
+    # Nova tabela para o REQ 05
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS faturamentos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_email TEXT NOT NULL,
+            pacote_nome TEXT NOT NULL,
+            quantidade_creditos INTEGER NOT NULL,
+            valor_total REAL NOT NULL,
+            nome_faturamento TEXT NOT NULL,
+            cpf_faturamento TEXT NOT NULL,
+            cep TEXT NOT NULL,
+            endereco TEXT NOT NULL,
+            cidade TEXT NOT NULL,
+            estado TEXT NOT NULL,
+            status_pagamento TEXT DEFAULT 'pendente',
+            FOREIGN KEY (usuario_email) REFERENCES usuarios (email)
         )
     ''')
     conn.commit()
@@ -119,3 +138,18 @@ def buscar_usuario_por_email(email):
             "tipo": resultado[1]
         }
     return None
+
+def registrar_compra_db(dados_compra: dict):
+    conn = sqlite3.connect('usuarios.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO faturamentos 
+        (usuario_email, pacote_nome, quantidade_creditos, valor_total, nome_faturamento, cpf_faturamento, cep, endereco, cidade, estado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        dados_compra['email_usuario'], dados_compra['pacote'], dados_compra['qtd'], 
+        dados_compra['valor'], dados_compra['nome'], dados_compra['cpf'], 
+        dados_compra['cep'], dados_compra['endereco'], dados_compra['cidade'], dados_compra['estado']
+    ))
+    conn.commit()
+    conn.close()
