@@ -1,6 +1,6 @@
 import threading
 import time
-from .video_encoder import VideoEncoder  # Importa o operário que acabamos de criar
+from .video_encoder import VideoEncoder  
 
 class StateController:
     def __init__(self):
@@ -23,7 +23,7 @@ class StateController:
         self.encoder.start_encoding()
         self.is_recording = True
         self.is_paused = False
-        
+
         # Inicia o operário em segundo plano
         self.thread = threading.Thread(target=self._record_loop)
         self.thread.start()

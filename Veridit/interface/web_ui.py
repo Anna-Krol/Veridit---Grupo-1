@@ -8,6 +8,14 @@ import os
 import sqlite3
 import yagmail
 
+# Import para captura
+from datetime import datetime
+import webbrowser
+import uuid
+import time
+import os
+from business.capture_orchestrator import CaptureOrchestrator
+from fastapi.responses import FileResponse
 
 # Imports das suas camadas internas de negócio
 from persistence.repositories_db import RepositoriesDB
@@ -105,16 +113,10 @@ async def exibir_dashboard(request: Request):
     if not dados_banco:
         # Segurança: se o email sumiu do banco por algum motivo, desloga
         return RedirectResponse(url="/", status_code=303)
-        
-    registros_reais = motor_captura.obter_todos_os_registros()
     
-    dados_usuario = {
-        "nome": dados_banco["nome"],
-        "email": usuario_email,
-        "creditos": 45, 
-        "total_registros": len(registros_reais), 
-        "este_mes": len(registros_reais)
-    }
+    registros_reais = motor_captura.obter_todos_os_registros()
+    dados_usuario["total_registros"] = len(registros_reais)
+    dados_usuario["este_mes"] = len(registros_reais)
 
     return templates.TemplateResponse(
         request=request,
@@ -266,38 +268,286 @@ async def rota_logout():
     return RedirectResponse(url="/", status_code=303)
 
 
-# Rota motor de captura
+# 2. Rota para exibir o formulário após escolher o plano
+@app.get("/faturamento")
+async def tela_faturamento(request: Request, pacote: str):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Busca os dados reais do usuário
+    dados_banco = buscar_usuario_por_email(usuario_email)
+    dados_usuario = {
+        "nome": dados_banco["nome"],
+        "creditos": 0
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="faturamento.html",
+        context={
+            "pacote_escolhido": pacote,
+            "usuario": dados_usuario # Enviamos a variável para a tela
+        }
+    )
+
+@app.post("/processar-compra")
+async def processar_compra(
+    request: Request,
+    pacote_selecionado: str = Form(...),
+    nome_faturamento: str = Form(...),
+    cpf_faturamento: str = Form(...),
+    telefone: str = Form(...),
+    cep: str = Form(...),
+    endereco: str = Form(...),
+    numero: str = Form(...),
+    complemento: str = Form(None),
+    bairro: str = Form(...),
+    cidade: str = Form(...),
+    estado: str = Form(...)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        raise HTTPException(status_code=401, detail="Não autorizado")
+
+    pacote = PACOTES_DISPONIVEIS.get(pacote_selecionado)
+    if not pacote:
+        raise HTTPException(status_code=400, detail="Pacote inválido")
+
+    valor_total = pacote.quantidade_creditos * pacote.valor_por_credito
+
+    # Monta o dicionário para persistência
+    dados_compra = {
+        "email_usuario": usuario_email,
+        "pacote": pacote.nome,
+        "qtd": pacote.quantidade_creditos,
+        "valor": valor_total,
+        "nome": nome_faturamento,
+        "cpf": cpf_faturamento,
+        "cep": cep,
+        "endereco": f"{endereco}, {numero} - {complemento or ''} - {bairro}",
+        "cidade": cidade,
+        "estado": estado
+    }
+    
+    # Salva no banco de dados
+    registrar_compra_db(dados_compra)
+    
+    # Redireciona para o próximo passo (REQ 06 - Pagamento)
+    return RedirectResponse(url=f"/pagamento?pacote={pacote_selecionado}", status_code=303)
+
+
+@app.get("/pagamento")
+async def tela_pagamento(request: Request, pacote: str = "basico"):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Busca os dados reais do usuário para a barra lateral
+    dados_banco = buscar_usuario_por_email(usuario_email)
+    dados_usuario = {
+        "nome": dados_banco["nome"] if dados_banco else "Usuário",
+        "creditos": 0
+    }
+
+    # Calcula o valor total com base no pacote selecionado
+    pacote_obj = PACOTES_DISPONIVEIS.get(pacote)
+    valor = (pacote_obj.quantidade_creditos * pacote_obj.valor_por_credito) if pacote_obj else 0.0
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pagamento.html",
+        context={
+            "usuario": dados_usuario,
+            "pacote_escolhido": pacote,
+            "valor_total": valor
+        }
+    )
+
+# Rota para simular o pagamento e creditar na conta
+@app.post("/simular-pagamento")
+async def simular_pagamento(
+    request: Request, 
+    pacote_selecionado: str = Form(...),
+    user_service: UserService = Depends(get_user_service) # Injeção de Dependência
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # O Controller delega a regra de negócio para o Serviço
+    user_service.processar_pagamento_aprovado(usuario_email, pacote_selecionado, PACOTES_DISPONIVEIS)
+    
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+# 1. Rota de Planos
+
+@app.get("/comprar-creditos")
+async def tela_comprar_creditos(
+    request: Request,
+    user_service: UserService = Depends(get_user_service)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Pega os dados reais e atualizados do banco
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+
+   
+    return templates.TemplateResponse(
+        request=request,
+        name="planos.html",
+        # O SEGREDO ESTÁ AQUI: Enviando os dados para o HTML
+        context={"usuario": dados_usuario} 
+    )
+
+# 2. Rota de Faturamento
+@app.get("/faturamento")
+async def tela_faturamento(
+    request: Request, 
+    pacote: str,
+    user_service: UserService = Depends(get_user_service) # Adicionamos o serviço aqui
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Pega os dados reais e atualizados do banco
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="faturamento.html",
+        context={"pacote_escolhido": pacote, "usuario": dados_usuario}
+    )
+
+# 3. Rota de Pagamento
+@app.get("/pagamento")
+async def tela_pagamento(
+    request: Request, 
+    pacote: str = "basico",
+    user_service: UserService = Depends(get_user_service) # Adicionamos o serviço aqui
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+        
+    # Pega os dados reais e atualizados do banco
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+
+    pacote_obj = PACOTES_DISPONIVEIS.get(pacote)
+    valor = (pacote_obj.quantidade_creditos * pacote_obj.valor_por_credito) if pacote_obj else 0.0
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pagamento.html",
+        context={"usuario": dados_usuario, "pacote_escolhido": pacote, "valor_total": valor}
+    )
+
+# Rotas de captura e registros
+@app.get("/nova-captura")
+async def exibir_nova_captura(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="nova_captura.html",
+        context={"request": request}
+    )
+
+@app.get("/sucessocap")
+async def tela_sucessocap(request: Request, id: str):
+    return templates.TemplateResponse(
+        request=request,
+        name="sucessocap.html",
+        context={"request": request, "id_captura": id}
+    )
+
+@app.get("/registros")
+async def exibir_todos_os_registros(
+    request: Request,
+    user_service: UserService = Depends(get_user_service)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+
+    # Padronizado com o modelo da equipe
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+    registros_reais = motor_captura.obter_todos_os_registros()
+
+    dados_usuario["total_registros"] = len(registros_reais)
+    dados_usuario["este_mes"] = len(registros_reais)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registros.html", 
+        context={"usuario": dados_usuario, "registros": registros_reais}
+    )
+
+@app.get("/detalhes/{captura_id}")
+async def tela_detalhes_registro(
+    request: Request,
+    captura_id: str,
+    user_service: UserService = Depends(get_user_service)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+    
+    
+    registros_reais = motor_captura.obter_todos_os_registros()
+    registro_encontrado = next((r for r in registros_reais if r["id"] == captura_id), None)
+
+    if not registro_encontrado:
+        raise HTTPException(status_code=404, detail="Registro não encontrado")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="detalhes.html",
+        context={"usuario": dados_usuario, "registro": registro_encontrado}
+    )
+
+@app.get("/api/download/{captura_id}")
+async def api_download_arquivo(captura_id: str):
+    nome_zip = f"{captura_id}.zip"
+    if os.path.exists(nome_zip):
+        return FileResponse(path=nome_zip, filename=nome_zip, media_type="application/zip")
+
+    nome_png = f"{captura_id}.png"
+    if os.path.exists(nome_png):
+        return FileResponse(path=nome_png, filename=nome_png, media_type="image/png")
+
+    raise HTTPException(status_code=404, detail="Arquivo em processamento ou não encontrado.")
+
 @app.post("/api/iniciar_captura")
 async def api_iniciar_captura(
+    request: Request,
     url_alvo: str = Form(...),
     titulo: str = Form(...),
-    tipo_captura: str = Form(...) # Espera receber "FOTO" ou "VIDEO"
-):
-    print(f"🎬 Recebida requisição de captura: {tipo_captura} para a URL: {url_alvo}")
-    
-    # 1. Gera um ID único para essa nova evidência
+    tipo_captura: str = Form(...)
+    ):
+    usuario_email = request.session.get("usuario_logado", "usuario@desconhecido.com")
     novo_id = f"REC-{str(uuid.uuid4())[:8].upper()}"
-
-    # 2. Abre a URL solicitada no navegador padrão do usuário
-    print(f"🌐 Abrindo navegador na URL: {url_alvo}")
-    webbrowser.open(url_alvo)
     
-    # Dá um tempo para o navegador abrir e carregar a página (3 segundos)
+    # Captura exata do momento atual na máquina do usuário
+    tempo_inicio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    
+    webbrowser.open(url_alvo)
     time.sleep(3)
 
-    
     if tipo_captura == "FOTO":
-        
-        motor_captura.iniciar_fluxo_foto(novo_id, titulo)
-        print("📸 Tirando foto da tela...")
+        tempo_fim = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        motor_captura.iniciar_fluxo_foto(novo_id, titulo, tempo_inicio, tempo_fim, usuario_email, url_alvo) 
         
     elif tipo_captura == "VIDEO":
-        
-        motor_captura.iniciar_fluxo_video(captura_id=novo_id, titulo=titulo)
-        print("🔴 Gravação de vídeo iniciada. Rodando em segundo plano...")
-        
+        motor_captura.iniciar_fluxo_video(novo_id, titulo, tempo_inicio, usuario_email, url_alvo) 
         
         time.sleep(10)
-        motor_captura.finalizar_fluxo_video(captura_id=novo_id)
+        
+        tempo_fim_video = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        # Fecha injetando o tempo final real da gravação
+        motor_captura.finalizar_fluxo_video(novo_id, tempo_fim_video)
 
     return RedirectResponse(url=f"/sucessocap?id={novo_id}", status_code=303)

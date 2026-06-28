@@ -38,3 +38,4 @@ class VideoEncoder:
         if self.writer:
             self.writer.release()
             self.writer = None
+            
