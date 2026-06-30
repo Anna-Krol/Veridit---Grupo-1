@@ -81,6 +81,20 @@ class RecordsRepository:
         conexao.commit()
         conexao.close()
 
+    def buscar_arquivo_fisico(self, captura_id: str):
+        """
+        Responsabilidade exclusiva da Persistência: vasculhar o HD.
+        """
+        nome_zip = f"{captura_id}.zip"
+        if os.path.exists(nome_zip):
+            return nome_zip, "application/zip"
+
+        nome_png = f"{captura_id}.png"
+        if os.path.exists(nome_png):
+            return nome_png, "image/png"
+
+        return None, None
+
     @property
     def banco_de_dados(self):
         """
