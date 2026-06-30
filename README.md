@@ -39,7 +39,7 @@ Para rodar o projeto localmente, você precisará apenas do **Python 3.8+** e do
 
 **1. Clone este repositório** para o seu computador e acesse a pasta do projeto:
 ```bash
-git clone [https://github.com/Anna-Krol/Veridit---Grupo-1.git](https://github.com/Anna-Krol/Veridit---Grupo-1.git)
+git clone https://github.com/Anna-Krol/Veridit---Grupo-1.git
 cd Veridit---Grupo-1
 ```
 Execute no teminal o comando:
