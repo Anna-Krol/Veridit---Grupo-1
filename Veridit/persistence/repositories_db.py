@@ -2,12 +2,6 @@ class RepositoriesDB:
     """Camada de Persistência: Banco de dados central de registros"""
     def __init__(self):
         self._banco_em_memoria = {}
-
-    def salvar_registro(self, id_registro: str, dados: dict) -> None:
-        self._banco_em_memoria[id_registro] = dados
-        print(f"[Persistence] Dados persistidos no BD para o ID: {id_registro}")
-
-    def __init__(self):
         # Simulação de tabelas do Banco de Dados
         self._usuarios = {}
         self._capturas = {}
@@ -15,6 +9,12 @@ class RepositoriesDB:
         
         # Cria um utilizador inicial padrão para testes imediatos
         self._inicializar_dados_teste()
+
+    def salvar_registro(self, id_registro: str, dados: dict) -> None:
+        self._banco_em_memoria[id_registro] = dados
+        print(f"[Persistence] Dados persistidos no BD para o ID: {id_registro}")
+
+    
 
     def _inicializar_dados_teste(self):
         # Cria uma classe anónima rápida para simular um Advogado já registado

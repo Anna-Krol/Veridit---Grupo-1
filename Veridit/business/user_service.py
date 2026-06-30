@@ -3,8 +3,9 @@ from infrastructure.repository import UsuarioRepository
 
 class UserService:
     # DIP (Inversão de Dependência): O serviço não cria o repositório, ele RECEBE o repositório.
-    def __init__(self, repository: UsuarioRepository):
+    def __init__(self, repository: UsuarioRepository, email_adapter=None):
         self.repository = repository
+        self.email_adapter = email_adapter
 
     def autenticar_usuario(self, email: str, senha_informada: str) -> bool:
         usuario = self.repository.buscar_por_email(email)
@@ -34,9 +35,18 @@ class UserService:
         if not pacote_obj:
             return False
             
-        # O int() força que o valor extraído seja estritamente um número inteiro
-        # Verificamos pacote_obj.quantidade_creditos para não somar o valor em R$ sem querer
         creditos_comprados = int(pacote_obj.quantidade_creditos)
+        nome_do_pacote = pacote_obj.nome # Supondo que seu objeto tenha um atributo nome
         
+        # 1. Salva no banco (como já estava)
         self.repository.adicionar_creditos_e_pagar(email, creditos_comprados)
+        
+        # 2. Atende ao REQ 07: Dispara o e-mail
+        if self.email_adapter:
+            self.email_adapter.enviar_confirmacao_pagamento(
+                email_destino=email, 
+                pacote_nome=nome_do_pacote, 
+                creditos=creditos_comprados
+            )
+            
         return True

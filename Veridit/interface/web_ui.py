@@ -25,6 +25,8 @@ from business.identity_auth_manager import IdentityAuthManager
 from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email
 from interface.database import registrar_compra_db
 
+from integration.email_adapter import EmailAdapter
+
 
 app = FastAPI(title="Veridit Platform")
 app.add_middleware(SessionMiddleware, secret_key="uma-chave-muito-secreta-e-longa-para-o-projeto-veridit")
@@ -53,7 +55,8 @@ auth_manager = IdentityAuthManager(repositories_db=db)
 sessao_atual = {"id": None, "email_usuario": "eduardo.almeida@ufba.br"}
 def get_user_service():
     repo = UsuarioRepository()
-    return UserService(repo)
+    adaptador_email = EmailAdapter()
+    return UserService(repository=repo, email_adapter=adaptador_email)
 
 # -------------------------------------------------------------------------
 # ROTAS DO FRONT-END (GET) - RENDERIZAM OS ARQUIVOS HTML EXTERNOS
