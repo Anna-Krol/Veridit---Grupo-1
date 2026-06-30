@@ -3,39 +3,15 @@
 {% block main_layout %}
 <header class="header-dashboard">
     <div class="welcome-text">
-        <h2>Olá, {% if usuario and usuario.nome %}{{ usuario.nome.split(' ')[0] }}{% else %}Usuário{% endif %}</h2>
-        <p>Bem-vindo ao seu painel de controle.</p>
+        <h2>Seus Registros</h2>
+        <p>Histórico completo de todas as evidências digitais capturadas.</p>
     </div>
     <a href="/nova-captura" style="text-decoration: none;">
         <button class="btn-new-register">+ Novo Registro</button>
     </a>
 </header>
 
-<section class="cards-container">
-    <div class="card">
-        <div class="card-info">
-            <h4>Total de Registros</h4>
-            <p>{{ usuario.total_registros if usuario else 0 }}</p>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-info">
-            <h4>Este Mês</h4>
-            <p>{{ usuario.este_mes if usuario else 0 }}</p>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-info" style="margin-right: 15px;">
-            <h4>Créditos Disponíveis</h4>
-            <p>{{ usuario.creditos if usuario else 0 }}</p>
-        </div>
-        <a href="/comprar-creditos" class="btn-buy" style="text-decoration: none;">Comprar</a>
-    </div>
-</section>
-
-<section class="table-container">
-    <h3>Registros Recentes</h3>
-    
+<section class="table-container">    
     <table class="data-table">
     <thead>
         <tr>
@@ -84,7 +60,5 @@
     {% endif %}
     </tbody>
 </table>
-    
-    <a href="/registros" class="view-all">Ver todos os registros</a>
 </section>
 {% endblock %}

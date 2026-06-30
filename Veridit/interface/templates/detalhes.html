@@ -1,0 +1,64 @@
+{% extends "base_painel.html" %}
+
+{% block main_layout %}
+<header class="header-dashboard">
+    <div class="welcome-text">
+        <h2>Detalhes do Registro</h2>
+        <p>Informações completas da evidência digital capturada.</p>
+    </div>
+    <a href="/registros" style="text-decoration: none;">
+        <button class="btn-details" style="padding: 10px 15px;">← Voltar para Lista</button>
+    </a>
+</header>
+
+<section class="table-container" style="max-width: 800px;">
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+        
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">ID Gerado pelo Sistema</p>
+            <p style="font-size: 16px; font-weight: bold; color: #1A233A;">{{ registro.id }}</p>
+        </div>
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">Usuário Responsável</p>
+            <p style="font-size: 16px; font-weight: bold; color: #1A233A;">{{ registro.usuario_responsavel }}</p>
+        </div>
+        
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">Título</p>
+            <p style="font-size: 16px; color: #333;">{{ registro.titulo }}</p>
+        </div>
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">Informações dos Dados</p>
+            <p style="font-size: 16px; color: #333;">{{ registro.info_dados }}</p>
+        </div>
+
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">Data/Hora Início</p>
+            <p style="font-size: 16px; color: #333;">{{ registro.data_inicio }}</p>
+        </div>
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">Data/Hora Fim</p>
+            <p style="font-size: 16px; color: #333;">{{ registro.data_fim }}</p>
+        </div>
+
+        <div>
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">Tipos de Dados Registrados</p>
+            <p style="font-size: 16px; font-weight: bold; color: #1A233A;">
+                {% if registro.tipo_dados == 'FOTO' %}📸 Captura de Tela
+                {% elif registro.tipo_dados == 'VIDEO' %}🎥 Gravação de Vídeo
+                {% else %}{{ registro.tipo_dados }}{% endif %}
+            </p>
+        </div>
+        <div style="grid-column: span 2;">
+            <p style="color: #828282; font-size: 12px; font-weight: 500; text-transform: uppercase;">URL do Site Capturado</p>
+            <p style="font-size: 16px; word-break: break-all;">
+                <a href="{{ registro.url }}" target="_blank" style="color: #2F80ED; text-decoration: none; font-weight: 500;">
+                    {{ registro.url }}
+                </a>
+            </p>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

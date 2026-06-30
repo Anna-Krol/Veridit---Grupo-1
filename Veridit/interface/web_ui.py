@@ -11,11 +11,20 @@ import os
 import sqlite3
 import yagmail
 
+# Import para captura
+from datetime import datetime
+import uuid
+import os
+from business.capture_orchestrator import CaptureOrchestrator
+from fastapi.responses import FileResponse
+from infrastructure.dependencies import get_motor_captura
 
 # Imports das suas camadas internas de negócio
 from persistence.repositories_db import RepositoriesDB
 from business.identity_auth_manager import IdentityAuthManager
-from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email, registrar_compra_db
+from interface.database import salvar_usuario, inicializar_db, criar_token_recuperacao, atualizar_senha_por_token, validar_login, buscar_usuario_por_email
+from interface.database import registrar_compra_db
+
 
 app = FastAPI(title="Veridit Platform")
 app.add_middleware(SessionMiddleware, secret_key="uma-chave-muito-secreta-e-longa-para-o-projeto-veridit")
@@ -38,6 +47,7 @@ templates = Jinja2Templates(directory=TEMPLATES_PATH)
 # Inicialização das instâncias de negócio do backend
 db = RepositoriesDB()
 auth_manager = IdentityAuthManager(repositories_db=db)
+
 
 # Estado de sessão simulado
 sessao_atual = {"id": None, "email_usuario": "eduardo.almeida@ufba.br"}
@@ -91,7 +101,8 @@ async def pagina_mudar_senha(token: str, request: Request):
 @app.get("/dashboard")
 async def exibir_dashboard(
     request: Request,
-    user_service: UserService = Depends(get_user_service) # A injeção de dependência entra aqui!
+    user_service: UserService = Depends(get_user_service), # A injeção de dependência entra aqui!
+    motor_captura: CaptureOrchestrator = Depends(get_motor_captura)
 ):
     usuario_email = request.session.get("usuario_logado")
     if not usuario_email:
@@ -102,12 +113,17 @@ async def exibir_dashboard(
     
     if not dados_usuario:
         return RedirectResponse(url="/", status_code=303)
+    
+    registros_reais = motor_captura.obter_todos_os_registros()
+    dados_usuario["total_registros"] = len(registros_reais)
+    dados_usuario["este_mes"] = len(registros_reais)
 
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"usuario": dados_usuario, "registros": []}
+        context={"usuario": dados_usuario, "registros": registros_reais}
     )
+
 
 @app.get("/sair")
 async def sair_do_sistema(request: Request):
@@ -116,6 +132,18 @@ async def sair_do_sistema(request: Request):
     
     # Redireciona o usuário de volta para a tela de login (/)
     return RedirectResponse(url="/", status_code=303)
+
+@app.get("/api/download/{captura_id}")
+async def api_download_arquivo(
+    captura_id: str,
+    motor_captura: CaptureOrchestrator = Depends(get_motor_captura)
+):
+    caminho_arquivo, media_type = motor_captura.obter_artefato_para_download(captura_id)
+
+    if caminho_arquivo and media_type:
+        return FileResponse(path=caminho_arquivo, filename=caminho_arquivo, media_type=media_type)
+        
+    raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
 
 # -------------------------------------------------------------------------
 # PROCESSADORES LÓGICOS (POST) - COMUNICAM COM O BACKEND E REDIRECIONAM
@@ -367,3 +395,102 @@ async def tela_pagamento(
         name="pagamento.html",
         context={"usuario": dados_usuario, "pacote_escolhido": pacote, "valor_total": valor}
     )
+
+# Rotas de captura e registros
+@app.get("/nova-captura")
+async def exibir_nova_captura(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="nova_captura.html",
+        context={"request": request}
+    )
+
+@app.get("/sucessocap")
+async def tela_sucessocap(request: Request, id: str):
+    return templates.TemplateResponse(
+        request=request,
+        name="sucessocap.html",
+        context={"request": request, "id_captura": id}
+    )
+
+@app.get("/registros")
+async def exibir_todos_os_registros(
+    request: Request,
+    user_service: UserService = Depends(get_user_service),
+    motor_captura: CaptureOrchestrator = Depends(get_motor_captura)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+
+    # Padronizado com o modelo da equipe
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+    registros_reais = motor_captura.obter_todos_os_registros()
+
+    dados_usuario["total_registros"] = len(registros_reais)
+    dados_usuario["este_mes"] = len(registros_reais)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registros.html", 
+        context={"usuario": dados_usuario, "registros": registros_reais}
+    )
+
+@app.get("/detalhes/{captura_id}")
+async def tela_detalhes_registro(
+    request: Request,
+    captura_id: str,
+    user_service: UserService = Depends(get_user_service),
+    motor_captura: CaptureOrchestrator = Depends(get_motor_captura)
+):
+    usuario_email = request.session.get("usuario_logado")
+    if not usuario_email:
+        return RedirectResponse(url="/", status_code=303)
+
+    dados_usuario = user_service.obter_dados_usuario(usuario_email)
+    
+    
+    registros_reais = motor_captura.obter_todos_os_registros()
+    registro_encontrado = next((r for r in registros_reais if r["id"] == captura_id), None)
+
+    if not registro_encontrado:
+        raise HTTPException(status_code=404, detail="Registro não encontrado")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="detalhes.html",
+        context={"usuario": dados_usuario, "registro": registro_encontrado}
+    )
+
+@app.get("/api/download/{captura_id}")
+async def api_download_arquivo(captura_id: str):
+    nome_zip = f"{captura_id}.zip"
+    if os.path.exists(nome_zip):
+        return FileResponse(path=nome_zip, filename=nome_zip, media_type="application/zip")
+
+    nome_png = f"{captura_id}.png"
+    if os.path.exists(nome_png):
+        return FileResponse(path=nome_png, filename=nome_png, media_type="image/png")
+
+    raise HTTPException(status_code=404, detail="Arquivo em processamento ou não encontrado.")
+
+@app.post("/api/iniciar_captura")
+async def api_iniciar_captura(
+    request: Request,
+    url_alvo: str = Form(...),
+    titulo: str = Form(...),
+    tipo_captura: str = Form(...),
+    motor_captura: CaptureOrchestrator = Depends(get_motor_captura)
+    ):
+    usuario_email = request.session.get("usuario_logado", "usuario@desconhecido.com")
+    novo_id = f"REC-{str(uuid.uuid4())[:8].upper()}"
+    tempo_inicio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+    if tipo_captura == "FOTO":
+        motor_captura.iniciar_fluxo_foto(novo_id, titulo, tempo_inicio, usuario_email, url_alvo) 
+        
+    elif tipo_captura == "VIDEO":
+        # Dispara o método e ele faz TUDO (espera, grava e fecha) sozinho lá dentro!
+        motor_captura.iniciar_fluxo_video(novo_id, titulo, tempo_inicio, usuario_email, url_alvo) 
+
+    return RedirectResponse(url=f"/sucessocap?id={novo_id}", status_code=303)

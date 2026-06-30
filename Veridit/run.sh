@@ -14,7 +14,7 @@ source .venv/bin/activate
 
 # Instala/Atualiza as dependências silenciosamente usando o pip de dentro do ambiente
 echo "📚 Checando dependências..."
-pip install fastapi uvicorn jinja2 yagmail itsdangerous python-multipart --quiet
+pip install fastapi uvicorn jinja2 yagmail itsdangerous python-multipart opencv-python numpy mss plyer --quiet
 
 # Roda o servidor usando o python do ambiente virtual
 echo "✅ Servidor rodando! Acesse: http://localhost:8000"

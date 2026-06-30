@@ -1,0 +1,45 @@
+{% extends "base_painel.html" %}
+
+{% block main_layout %}
+<header class="header-dashboard">
+    <div class="welcome-text">
+        <h2>Novo Registro de Evidência</h2>
+        <p>Preencha os dados abaixo para iniciar a captura de uma página web.</p>
+    </div>
+</header>
+
+<section class="table-container" style="max-width: 600px;">
+    <form action="/api/iniciar_captura" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <div>
+            <label for="titulo" style="font-weight: 500; font-size: 14px; color: #1A233A; display: block; margin-bottom: 8px;">Título da Evidência</label>
+            <input type="text" id="titulo" name="titulo" required placeholder="Ex: Perfil Falso no Instagram" style="width: 100%; padding: 12px; border: 1px solid #E0E0E0; border-radius: 6px; font-size: 14px;">
+        </div>
+
+        <div>
+            <label for="url_alvo" style="font-weight: 500; font-size: 14px; color: #1A233A; display: block; margin-bottom: 8px;">URL do Site (Link completo)</label>
+            <input type="url" id="url_alvo" name="url_alvo" required placeholder="https://www.exemplo.com/pagina-ofensiva" style="width: 100%; padding: 12px; border: 1px solid #E0E0E0; border-radius: 6px; font-size: 14px;">
+        </div>
+
+        <div>
+            <label for="tipo_captura" style="font-weight: 500; font-size: 14px; color: #1A233A; display: block; margin-bottom: 8px;">Tipo de Captura</label>
+            <select id="tipo_captura" name="tipo_captura" required style="width: 100%; padding: 12px; border: 1px solid #E0E0E0; border-radius: 6px; font-size: 14px; background: white; cursor: pointer;">
+                <option value="FOTO">📸 Captura de Tela Estática (Foto)</option>
+                <option value="VIDEO">🎥 Gravação de Navegação (Vídeo de 10s)</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-new-register" style="margin-top: 10px; width: 100%;">Iniciar Captura</button>
+        <div style="background-color: #F0F7FF; border-left: 4px solid #2F80ED; padding: 15px 20px; margin-bottom: 25px; border-radius: 4px;">
+    <h4 style="margin: 0 0 10px 0; color: #1A233A; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+        ℹ️ Como funciona o processo?
+    </h4>
+    <ul style="margin: 0; padding-left: 20px; color: #4F4F4F; font-size: 14px; line-height: 1.6;">
+        <li>Assim que você clicar em Iniciar, uma <strong>notificação do sistema</strong> aparecerá no canto da tela confirmando a gravação.</li>
+        <li>O site alvo será aberto automaticamente para a coleta da evidência.</li>
+        <li>O botão desta página ficará carregando. <strong>Por favor, não feche o navegador</strong>. O carregamento vai parar automaticamente assim que a captura for concluída e salva!</li>
+    </ul>
+</div>
+    </form>
+</section>
+{% endblock %}

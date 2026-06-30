@@ -3,3 +3,7 @@ __pycache__/
 usuarios.db__pycache__/
 *.db
 .venv/
+*.png
+*.avi
+*.mp4
+*.zip                                                                                                                                     
